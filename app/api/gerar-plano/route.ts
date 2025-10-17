@@ -39,17 +39,14 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Supabase error:', error);
       return NextResponse.json(
-        { error: 'Erro ao salvar no banco de dados' },
+        { error: 'Erro ao salvar plano' },
         { status: 500 }
       );
     }
 
     return NextResponse.json(data, { status: 201 });
   } catch (error: any) {
-    console.error('API error:', error);
-    
     if (error.message?.includes('Gemini API')) {
       return NextResponse.json(
         { error: 'Erro na API de IA' },
@@ -58,7 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: 'Erro interno' },
       { status: 500 }
     );
   }
