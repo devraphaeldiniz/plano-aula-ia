@@ -1,285 +1,135 @@
 # Gerador de Planos de Aula com IA
 
-Sistema completo para criação automatizada de planos de aula personalizados, alinhados à BNCC, utilizando Gemini API e Supabase.
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=nextdotjs)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
+[![Gemini API](https://img.shields.io/badge/Gemini-2.5--flash-8E75B2?style=flat-square&logo=google)](https://aistudio.google.com)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
-## 🔗 Acesso
+Aplicação full stack para geração automatizada de planos de aula estruturados e alinhados às diretrizes da Base Nacional Comum Curricular (BNCC). O sistema resolve o desafio de alucinação e formatos inconsistentes comuns em LLMs aplicando validação estrita de schema com Zod e sanitização de respostas antes da persistência no banco.
 
-- **Aplicação**: https://plano-aula-4i0xhojbb-raphaels-projects-004b90a9.vercel.app
-- **Repositório**: https://github.com/devraphaeldiniz/plano-aula-ia
+---
 
-## 📚 Tecnologias
+## 🏗️ Arquitetura do Sistema
 
-- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, Supabase PostgreSQL
-- **IA**: Google Gemini API (gemini-2.5-flash)
-- **Validação**: Zod
-- **Deploy**: Vercel
+```mermaid
+flowchart TD
+    User([Professor / Educador]) -->|Preenche Metodologia e BNCC| Form[Interface Next.js 15]
+    Form -->|POST /api/gerar-plano| APIRoute[Next.js API Route Serverless]
+    
+    subgraph Validacao de Entrada
+        ValidatorIn[Zod Input Schema Validation]
+    end
+    
+    APIRoute --> ValidatorIn
+    
+    subgraph Integracao com IA
+        PromptBuilder[System Prompt + Contexto Pedagógico]
+        Gemini[Google Gemini 2.5 Flash]
+    end
+    
+    ValidatorIn --> PromptBuilder
+    PromptBuilder -->|generateContent API| Gemini
+    
+    subgraph Tratamento & Validacao de Schema
+        Cleaner[Markdown Stripper & JSON Parser]
+        ValidatorOut[Zod Output Schema: PlanoAulaSchema]
+    end
+    
+    Gemini -->|Resposta JSON Bruta| Cleaner
+    Cleaner --> ValidatorOut
+    
+    subgraph Persistencia
+        DB[(Supabase PostgreSQL - lesson_plans)]
+    end
+    
+    ValidatorOut -->|Persistência jsonb| DB
+    ValidatorOut -->|JSON Estruturado e Validado| Form
+```
 
-## 🎯 Funcionalidades
+---
 
-### Interface
-- Formulário intuitivo com 8 campos configuráveis
-- Validação em tempo real no cliente e servidor
-- Loading states e feedback visual
-- Interface responsiva e acessível
+## ✨ Funcionalidades Principais
 
-### Geração de Planos
-- Introdução lúdica contextualizada
-- Objetivos BNCC específicos
-- Passo a passo detalhado (4-6 etapas)
-- Rubrica de avaliação (3-4 critérios)
-- Observações pedagógicas
+- **Entrada Pedagógica Estruturada:** Formulário com seleção de disciplina, ano escolar, tema, duração, metodologia preferida e objetivos prévios da BNCC.
+- **Engenharia de Prompt com Restrição de Formato:** Prompts instruídos para retornar JSON estrito com introdução lúdica, etapas metodológicas detalhadas (4-6 passos) e rubrica de avaliação formativa.
+- **Sanitização e Validação Zod:** Limpeza automática de delimitadores markdown (```json ... ```) e validação tipada em tempo de execução via schema Zod, prevenindo crashes de renderização.
+- **Mecanismo de Retry e Tolerância a Falhas:** Tentativa automatizada de reenvio com parâmetros ajustados em caso de rate limit (HTTP 429) ou resposta truncada.
+- **Persistência de Histórico:** Armazenamento completo dos inputs do usuário e do plano gerado em coluna `jsonb` no PostgreSQL (Supabase).
 
-### Robustez
-- Retry automático em caso de falha
-- Limpeza de markdown do JSON
-- Validação de schema com Zod
-- Tratamento granular de erros
-- Logs estruturados
+---
 
-## 🚀 Instalação
+## 🛠️ Stack Tecnológica & Decisões Técnicas
+
+| Componente | Tecnologia | Decisão Técnica |
+| :--- | :--- | :--- |
+| **Framework Full Stack** | Next.js 15 (App Router) | Rotas serverless desacopladas (`/api/gerar-plano`), Server Components para rápida entrega inicial e Turbopack no ciclo de desenvolvimento. |
+| **Modelo de IA** | Gemini 2.5 Flash | Excelente equilíbrio entre latência reduzida (TTFT), custo por token e seguimento estrito de instruções em formatação JSON. |
+| **Validação de Dados** | Zod | Garantia de contrato de dados tanto no payload de entrada da requisição quanto na inferência estrutural da resposta do LLM. |
+| **Camada de Dados** | Supabase (PostgreSQL) | Armazenamento flexível com suporte a tipos nativos `jsonb` para planos com número variável de etapas e critérios. |
+
+---
+
+## 🚀 Como Rodar o Projeto
 
 ### Pré-requisitos
+- Node.js 18+ e npm
+- Chave de API do Google AI Studio ([obter aqui](https://aistudio.google.com/app/apikey))
+- Projeto criado no Supabase
 
-- Node.js 18+
-- Conta Supabase
-- Google AI Studio API Key
-
-### Configuração
+### 1. Clonar o repositório e instalar dependências
 ```bash
-git clone https://github.com/devraphaeldiniz/plano-aula-ia
+git clone https://github.com/devraphaeldiniz/plano-aula-ia.git
 cd plano-aula-ia
 npm install
 ```
 
-### Variáveis de Ambiente
-
-Crie `.env.local`:
+### 2. Configurar variáveis de ambiente
+Crie um arquivo `.env.local` na raiz:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_aqui
-GEMINI_API_KEY=sua_chave_aqui
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima_aqui
+GEMINI_API_KEY=sua_chave_gemini_aqui
 ```
 
-**Obtenção das credenciais:**
-
-**Supabase:**
-1. Acesse https://supabase.com/dashboard
-2. Crie novo projeto ou acesse existente
-3. Settings → API
-4. Copie `Project URL` e `anon public` key
-
-**Gemini API:**
-1. Acesse https://aistudio.google.com/app/apikey
-2. Create API Key
-3. Copie a chave gerada
-
-### Banco de Dados
-
-Execute o SQL no Supabase SQL Editor:
-```bash
-# Conteúdo disponível em: supabase/migration.sql
-```
-
-### Execução
+### 3. Executar o servidor de desenvolvimento
 ```bash
 npm run dev
 ```
+Abra `http://localhost:3000` no navegador.
 
-Aplicação rodando em http://localhost:3000
+---
 
-## 📊 Arquitetura
+## 🧪 Como Rodar Testes e Validação
 
-### Estrutura de Dados
-```
-lesson_plans
-├── id (uuid, PK)
-├── user_id (uuid, nullable)
-├── disciplina (text)
-├── ano_escolar (text)
-├── tema (text)
-├── duracao_minutos (integer)
-├── nivel_turma (text)
-├── input_data (jsonb)
-│   ├── disciplina
-│   ├── anoEscolar
-│   ├── tema
-│   ├── duracaoMinutos
-│   ├── nivelTurma
-│   ├── objetivosBncc[]
-│   ├── recursosDisponiveis[]
-│   ├── metodologiaPreferida
-│   └── observacoesAdicionais
-├── plano_gerado (jsonb)
-│   ├── introducao_ludica
-│   ├── objetivos_bncc[]
-│   ├── passo_a_passo[]
-│   ├── rubrica_avaliacao[]
-│   └── observacoes
-├── created_at (timestamptz)
-└── updated_at (timestamptz)
-```
-
-### Fluxo de Dados
-```
-Usuário → Formulário → Validação Client
-                         ↓
-                    API Route → Validação Server
-                         ↓
-                    Gemini API → Geração
-                         ↓
-                    Parse/Validate → Zod Schema
-                         ↓
-                    Supabase → Persistência
-                         ↓
-                    Response → Renderização
-```
-
-## 🤖 Modelo de IA
-
-### Seleção: gemini-2.5-flash
-
-**Critérios de escolha:**
-- Latência: ~2-5s por requisição
-- Context: 1M tokens input, 65k output
-- Custo: Tier gratuito 15 req/min
-- Qualidade: Versão mais recente estável
-- Suporte: JSON nativo
-
-**Configuração:**
-```typescript
-model: "gemini-2.5-flash"
-temperature: 0.8 (balanceamento criatividade/estrutura)
-retry_temperature: 0.3 (maior consistência)
-```
-
-Documentação completa em [MODELO.md](./MODELO.md)
-
-## 🛠️ Decisões Técnicas
-
-### Validação em Camadas
-- **Cliente**: UX responsiva, feedback imediato
-- **Servidor**: Segurança, dados íntegros
-- **Schema**: Zod para type-safety e runtime validation
-
-### Estratégia de Retry
-1. Tentativa inicial (temp 0.8)
-2. Parse do JSON com limpeza de markdown
-3. Se falhar: retry com prompt restritivo (temp 0.3)
-4. Validação final com Zod schema
-
-### Armazenamento JSONB
-- Flexibilidade para campos opcionais
-- Queries eficientes com índices GIN
-- Facilita evolução do schema
-- Suporta estruturas aninhadas complexas
-
-### Segurança
-- API keys apenas server-side
-- RLS policies no Supabase
-- Validação de tipos em runtime
-- Sanitização via Zod
-- CORS configurado
-
-### Performance
-- Modelo Flash otimizado
-- Índices em campos críticos
-- Compressão automática Vercel
-- Edge functions quando possível
-
-## 🚧 Desafios e Soluções
-
-### Compatibilidade de Modelo
-**Contexto:** API retornando 404 para modelo especificado  
-**Investigação:** Listagem via `/v1/models` endpoint  
-**Resolução:** Migração para gemini-2.5-flash  
-**Impacto:** Melhoria de performance e estabilidade
-
-### Parsing de JSON
-**Contexto:** Gemini envolvia JSON em delimitadores markdown  
-**Investigação:** Análise de múltiplas respostas da API  
-**Resolução:** Função `cleanJsonResponse()` com regex  
-**Impacto:** 100% de sucesso no parsing
-
-### RLS Policies
-**Contexto:** INSERT bloqueado por políticas restritivas  
-**Investigação:** Análise de logs do Supabase  
-**Resolução:** Policy permitindo `user_id IS NULL`  
-**Impacto:** Suporte a usuários anônimos mantendo segurança
-
-### Consistência de Schema
-**Contexto:** IA variando estrutura entre requisições  
-**Investigação:** Análise estatística de 50+ gerações  
-**Resolução:** Schema Zod rígido + retry estratégico  
-**Impacto:** Redução de 30% para <2% de falhas
-
-### Build em Produção
-**Contexto:** Erro de tipos no deploy Vercel  
-**Investigação:** Diferenças entre dev e prod build  
-**Resolução:** Correção de tipos do ZodError  
-**Impacto:** Build limpo e estável
-
-## 📦 Deploy
-
-### Vercel (Recomendado)
+Para validar tipagens e regras de linting do código:
 ```bash
-npm install -g vercel
-vercel login
-vercel --prod
+npm run lint
 ```
 
-**Configuração:**
-- Auto-detect Next.js
-- Configurar env vars no dashboard
-- Deploy automático via GitHub
-
-### Alternativas
-
-**Render:**
+Para verificar o build de produção:
 ```bash
-Build: npm run build
-Start: npm start
-Port: 3000
+npm run build
 ```
 
-**Railway/Fly.io:**
-- Buildpack Node.js
-- Env vars via CLI ou dashboard
+---
 
-## 📈 Métricas
+## 📊 Resultados e Métricas
 
-- **Build time**: ~45s
-- **First load**: ~200KB
-- **API latency**: 2-5s (Gemini) + <100ms (Supabase)
-- **Success rate**: >98%
-- **Uptime**: 99.9% (Vercel SLA)
+- **Taxa de Conformidade Estrutural:** 100% dos planos validados pelo Zod Schema antes da gravação no banco, eliminando respostas inválidas no frontend.
+- **Tempo Médio de Geração:** `TODO: Registrar histograma de latência fim a fim (tempo de chamada Gemini + parsing + save no Supabase).`
+- **Taxa de Retry por 429:** `TODO: Monitorar percentual de requisições retentadas sob picos de acesso.`
 
-## 🔮 Roadmap
+---
 
-### Curto Prazo
-- [ ] Autenticação Supabase Auth
-- [ ] Histórico de planos por usuário
-- [ ] Export PDF/DOCX
+## ⚠️ Limitações e Próximos Passos
 
-### Médio Prazo
-- [ ] Edição inline de planos
-- [ ] Templates personalizáveis
-- [ ] Compartilhamento por link
+- [ ] Implementar exportação direta do plano de aula gerado em formato PDF / DOCX.
+- [ ] Adicionar streaming de resposta (*Server-Sent Events*) com feedback visual progressivo das etapas.
+- [ ] Permitir edição interativa e regeneração parcial de seções individuais do plano gerado.
 
-### Longo Prazo
-- [ ] Integração Google Classroom
-- [ ] Colaboração em tempo real
-- [ ] Analytics de uso
+---
 
 ## 📄 Licença
 
-MIT License - veja [LICENSE](./LICENSE) para detalhes
-
-## 👤 Desenvolvedor
-
-**Raphael Diniz**  
-Engenheiro de Software Full Stack
-
-- GitHub: [@devraphaeldiniz](https://github.com/devraphaeldiniz)
-- LinkedIn: [/in/devraphaeldiniz](https://www.linkedin.com/in/devraphaeldiniz/)
-- WhatsApp: +55 11 93282-9486
+Distribuído sob a licença MIT. Consulte [LICENSE](LICENSE) para mais detalhes.
