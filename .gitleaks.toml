@@ -1,0 +1,4 @@
+title = "Gitleaks config for plano-aula-ia"
+
+[allowlist]
+description = "Nenhum padrão de allowlist necessário no momento"
