@@ -117,13 +117,13 @@ npm run build
 ## 📊 Resultados e Métricas
 
 - **Taxa de Conformidade Estrutural:** 100% dos planos validados pelo Zod Schema antes da gravação no banco, eliminando respostas inválidas no frontend.
-- **Tempo Médio de Geração:** `TODO: Registrar histograma de latência fim a fim (tempo de chamada Gemini + parsing + save no Supabase).`
-- **Taxa de Retry por 429:** `TODO: Monitorar percentual de requisições retentadas sob picos de acesso.`
 
 ---
 
 ## ⚠️ Limitações e Próximos Passos
 
+- [ ] Registrar a latência ponta a ponta (Gemini + parsing + gravação no Supabase).
+- [ ] Monitorar o percentual de requisições refeitas por erro 429 em picos de acesso.
 - [ ] Implementar exportação direta do plano de aula gerado em formato PDF / DOCX.
 - [ ] Adicionar streaming de resposta (*Server-Sent Events*) com feedback visual progressivo das etapas.
 - [ ] Permitir edição interativa e regeneração parcial de seções individuais do plano gerado.
